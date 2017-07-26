@@ -156,5 +156,17 @@ public class Alphavantage {
 
 		return quote.toString();
 	}
+	
+	public String russell2000List() {
+		// https://www.xignite.com/Product/xigniteindexcomponents/1#/productoverview
+		// 7 day free trial
+		// http://money.cnn.com/data/markets/russell/?page=1
+		// 96 pages (of companies); scrape the web pages
+		// find table on page
+		// first <td> of each row
+		// body of the <a> tag looks like the symbol
+		//
+		return null;
+	}
 
 }
