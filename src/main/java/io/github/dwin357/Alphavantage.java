@@ -2,11 +2,19 @@ package io.github.dwin357;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,7 +32,7 @@ public class Alphavantage {
 		Alphavantage av = new Alphavantage();
 		
 		System.out.println("sending get");
-		String response = av.alpha();
+		String response = av.yahoo();
 		System.out.println("alpha is...");
 		System.out.println(response);
 	}
@@ -90,9 +98,63 @@ public class Alphavantage {
 		JSONObject json = new JSONObject(response.toString());
 		String tz = json.getJSONObject("Meta Data").getString("6. Time Zone");
 		
-		return tz;
+		return tz;				
+	}
+	
+	public String yahoo() throws IOException {
+		//https://stackoverflow.com/questions/44030983/yahoo-finance-url-not-working/44495145#44495145
 		
+		URL cookieThief = new URL("https://finance.yahoo.com/quote/SPY");
+		ArrayList<String> cookieJar = new ArrayList<String>();
+		URLConnection con = cookieThief.openConnection();
+		for (Entry<String, List<String>> entry : con.getHeaderFields().entrySet()) {
+			if (entry.getKey() == null || !entry.getKey().equals("Set-Cookie")) {
+				continue;
+			}
+			for (String cookie : entry.getValue()) {
+				cookieJar.add(cookie);
+			}
+		}
 		
+		String crumb = null;
+		InputStream is = con.getInputStream();
+		InputStreamReader irdr = new InputStreamReader(is);
+		BufferedReader rsv = new BufferedReader(irdr);
+		
+		Pattern crumbPattern = Pattern.compile(".*\"CrumbStore\":\\{\"crumb\":\"([^\"]+)\"\\}.*");
+		String line = null;
+		while (crumb == null && (line = rsv.readLine()) != null) {
+			Matcher matcher = crumbPattern.matcher(line);
+			if (matcher.matches()) {
+				crumb = matcher.group(1);
+			}
+		}
+		rsv.close();
+		
+		String qu = "https://query1.finance.yahoo.com/v7/finance/download";
+		qu = qu + "/IBM";
+		qu = qu + "?period1=1493425217&period2=1496017217&interval=1d&events=history";
+		qu = qu + "&crumb=" + crumb;
+		URL ask = new URL(qu);
+		URLConnection aCon = ask.openConnection();
+		aCon.setRequestProperty("Cookie", cookieJar.get(0));
+			
+		StringBuffer quote = new StringBuffer();
+		BufferedReader qReader = new BufferedReader(
+				new InputStreamReader(
+						aCon.getInputStream()));
+		
+		line = null;
+		while ((line = qReader.readLine()) != null) {
+			quote.append(line);
+		}
+		
+//		System.out.println("cookieJar size " + cookieJar.size());
+//		System.out.println("cooke 1 " + cookieJar.get(0));
+//		System.out.println("crumb " + crumb);
+//		System.out.println("q " + quote.toString());
+
+		return quote.toString();
 	}
 
 }
